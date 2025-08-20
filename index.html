@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IMKSAV Salary Tracker</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body { background-color: #f0f2f5; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    h1 { text-align:center; margin-top:30px; margin-bottom:10px; color:#0d6efd; font-weight:bold; }
+    .tagline { text-align:center; color:#6c757d; margin-bottom:30px; font-size:1.1em; }
+    .card { border-radius:15px; box-shadow:0 4px 12px rgba(0,0,0,0.1); margin-bottom:20px; }
+    .output-card { border-left:6px solid #0d6efd; transition: transform 0.3s, box-shadow 0.3s; }
+    .output-card:hover { transform:scale(1.02); box-shadow:0 6px 18px rgba(0,0,0,0.15); }
+    .optional-field { background-color:#e9ecef; }
+    .net-amount { background-color:#d4edda; padding:12px; border-radius:12px; font-weight:bold; text-align:center; margin-top:10px; font-size:1.2em; }
+    .deductions-row div { background-color:#ffe5e0; border-radius:8px; padding:10px; margin-bottom:5px; text-align:center; }
+    .btn-group-custom { display:flex; flex-wrap:wrap; gap:10px; margin-top:20px; }
+    input[type=number]::-webkit-inner-spin-button,
+    input[type=number]::-webkit-outer-spin-button { -webkit-appearance:none; margin:0; }
+    input[type=number] { -moz-appearance:textfield; }
+    .form-group-portrait { display:flex; flex-direction:column; gap:10px; }
+    footer { text-align:center; padding:20px 0; margin-top:40px; color:#6c757d; font-size:0.9em; }
+    .summary-card { background-color:#fff3cd; padding:15px; border-radius:12px; margin-top:20px; text-align:center; font-weight:bold; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>IMKSAV Salary & Income Tracker</h1>
+    <div class="tagline">Your personal UK weekly salary and deductions tracker</div>
+
+    <!-- Input Card -->
+    <div class="card p-4 bg-white">
+      <h4 class="mb-3">Enter Weekly Details</h4>
+      <div class="form-group-portrait">
+        <div>
+          <label>Week</label>
+          <input type="number" id="week" class="form-control" value="1">
+        </div>
+        <div>
+          <label>Basic Hours</label>
+          <input type="number" id="basicHours" class="form-control" value="37.5" step="0.1">
+        </div>
+        <div>
+          <label>OT 1.25 Hours</label>
+          <input type="number" id="ot125Hours" class="form-control" value="0" step="0.1">
+        </div>
+        <div>
+          <label>OT 1.50 Hours</label>
+          <input type="number" id="ot150Hours" class="form-control" value="0" step="0.1">
+        </div>
+        <div>
+          <label>Step Up (£ optional)</label>
+          <input type="number" id="stepUp" class="form-control optional-field" value="0" step="0.01">
+        </div>
+        <div>
+          <label>UKP Walk Up (£ optional)</label>
+          <input type="number" id="ukp" class="form-control optional-field" value="0" step="0.01">
+        </div>
+        <div>
+          <label>Holiday (£ optional)</label>
+          <input type="number" id="holiday" class="form-control optional-field" value="0" step="0.01">
+        </div>
+      </div>
+      <div class="btn-group-custom">
+        <button class="btn btn-primary" onclick="addWeek()">Add Week</button>
+        <button class="btn btn-warning" onclick="clearWeeks()">Clear</button>
+        <button class="btn btn-success" onclick="saveWeeks()">Save</button>
+        <button class="btn btn-info" onclick="exportExcel()">Export Excel</button>
+      </div>
+    </div>
+
+    <!-- Output Container -->
+    <div id="outputContainer"></div>
+
+    <!-- Summary Card -->
+    <div id="summaryCard" class="summary-card"></div>
+
+  </div>
+
+  <footer>
+    &copy; 2025 imksav | Personal UK salary tracker for your weekly income, deductions & net pay
+  </footer>
+
+  <!-- XLSX Library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script>
+    const FIXED_RATES = { basic:12.21, ot125:15.2625, ot150:18.315 };
+    let weeksData = JSON.parse(localStorage.getItem('weeksData')) || [];
+
+    function addWeek() {
+      const week = parseInt(document.getElementById('week').value);
+      const basicHours = parseFloat(document.getElementById('basicHours').value);
+      const ot125Hours = parseFloat(document.getElementById('ot125Hours').value);
+      const ot150Hours = parseFloat(document.getElementById('ot150Hours').value);
+      const stepUp = parseFloat(document.getElementById('stepUp').value);
+      const ukp = parseFloat(document.getElementById('ukp').value);
+      const holiday = parseFloat(document.getElementById('holiday').value);
+
+      const basicPay = basicHours*FIXED_RATES.basic;
+      const ot125Pay = ot125Hours*FIXED_RATES.ot125;
+      const ot150Pay = ot150Hours*FIXED_RATES.ot150;
+      const totalEarnings = basicPay + ot125Pay + ot150Pay + stepUp + ukp + holiday;
+      const personalAllowance = 241.7;
+      const taxableIncome = Math.max(totalEarnings - personalAllowance,0);
+      const tax = taxableIncome*0.2;
+      const eeNI = taxableIncome*0.08;
+      const erNI = taxableIncome*0.1;
+      const deductions = { Tax: tax, 'EE NI': eeNI };
+      const netAmount = totalEarnings - (tax + eeNI);
+
+      // Add current date and time
+      const currentDateTime = new Date().toLocaleString();
+
+      weeksData.push({
+        week,basicHours,basicPay,ot125Hours,ot125Pay,ot150Hours,ot150Pay,
+        stepUp,ukp,holiday,totalEarnings,personalAllowance,taxableIncome,
+        deductions,erNI,netAmount, dateTime: currentDateTime
+      });
+
+      renderOutput();
+    }
+
+    function renderOutput() {
+      const container = document.getElementById('outputContainer');
+      container.innerHTML = '';
+
+      let totalEarningsSum = 0, totalTax = 0, totalEENI = 0, totalERNI = 0, totalNet = 0;
+
+      weeksData.forEach(w => {
+        totalEarningsSum += w.totalEarnings;
+        totalTax += w.deductions.Tax;
+        totalEENI += w.deductions['EE NI'];
+        totalERNI += w.erNI;
+        totalNet += w.netAmount;
+
+        const card = document.createElement('div');
+        card.className = 'card p-3 output-card';
+        card.innerHTML = `
+          <h5>Week ${w.week} | Added: ${w.dateTime}</h5>
+          <div class="row">
+            <div class="col-md-4">Basic Pay: £${w.basicPay.toFixed(2)} (${w.basicHours} hrs)</div>
+            <div class="col-md-4">OT 1.25 Pay: £${w.ot125Pay.toFixed(2)} (${w.ot125Hours} hrs)</div>
+            <div class="col-md-4">OT 1.50 Pay: £${w.ot150Pay.toFixed(2)} (${w.ot150Hours} hrs)</div>
+          </div>
+          <div class="row mt-2">
+            <div class="col-md-3">Step Up: £${w.stepUp.toFixed(2)}</div>
+            <div class="col-md-3">UKP Walk Up: £${w.ukp.toFixed(2)}</div>
+            <div class="col-md-3">Holiday: £${w.holiday.toFixed(2)}</div>
+            <div class="col-md-3">Total Earnings: £${w.totalEarnings.toFixed(2)}</div>
+          </div>
+          <div class="row mt-3 deductions-row">
+            <div class="col-md-3">Tax: £${w.deductions.Tax.toFixed(2)}</div>
+            <div class="col-md-3">EE NI: £${w.deductions['EE NI'].toFixed(2)}</div>
+            <div class="col-md-3">ER NI: £${w.erNI.toFixed(2)}</div>
+            <div class="col-md-3">Total Deductions: £${(w.deductions.Tax+w.deductions['EE NI']).toFixed(2)}</div>
+          </div>
+          <div class="net-amount">Net Amount Paid: £${w.netAmount.toFixed(2)}</div>
+        `;
+        container.appendChild(card);
+      });
+
+      document.getElementById('summaryCard').innerHTML = `
+        <div>Total Earnings: £${totalEarningsSum.toFixed(2)} | Total Tax: £${totalTax.toFixed(2)} | EE NI: £${totalEENI.toFixed(2)} | ER NI: £${totalERNI.toFixed(2)} | Net Amount: £${totalNet.toFixed(2)}</div>
+      `;
+    }
+
+    function clearWeeks() {
+      weeksData = [];
+      localStorage.removeItem('weeksData');
+      renderOutput();
+    }
+
+    function saveWeeks() {
+      localStorage.setItem('weeksData', JSON.stringify(weeksData));
+      alert('Data saved locally!');
+    }
+
+    function exportExcel() {
+      const ws_data = [['Week','Date & Time','Basic Hours','Basic Pay','OT 1.25 Hours','OT 1.25 Pay','OT 1.50 Hours','OT 1.50 Pay','Step Up','UKP Walk Up','Holiday','Total Earnings','Personal Allowance','Taxable Income','Tax','EE NI','ER NI','Total Deductions','Net Amount Paid']];
+      weeksData.forEach(w=>{
+        ws_data.push([
+          w.week, w.dateTime, w.basicHours, w.basicPay, w.ot125Hours, w.ot125Pay, w.ot150Hours, w.ot150Pay,
+          w.stepUp, w.ukp, w.holiday, w.totalEarnings, w.personalAllowance, w.taxableIncome,
+          w.deductions.Tax, w.deductions['EE NI'], w.erNI, (w.deductions.Tax+w.deductions['EE NI']), w.netAmount
+        ]);
+      });
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.aoa_to_sheet(ws_data);
+      XLSX.utils.book_append_sheet(wb, ws, 'Salary');
+      XLSX.writeFile(wb,'salary_data.xlsx');
+    }
+
+    renderOutput();
+  </script>
+</body>
+</html>
