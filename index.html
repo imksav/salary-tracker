@@ -1,197 +1,382 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>IMKSAV Salary Tracker</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>IMKSAV Salary Tracker — UK</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <style>
-    body { background-color: #f0f2f5; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-    h1 { text-align:center; margin-top:30px; margin-bottom:10px; color:#0d6efd; font-weight:bold; }
-    .tagline { text-align:center; color:#6c757d; margin-bottom:30px; font-size:1.1em; }
-    .card { border-radius:15px; box-shadow:0 4px 12px rgba(0,0,0,0.1); margin-bottom:20px; }
-    .output-card { border-left:6px solid #0d6efd; transition: transform 0.3s, box-shadow 0.3s; }
-    .output-card:hover { transform:scale(1.02); box-shadow:0 6px 18px rgba(0,0,0,0.15); }
-    .optional-field { background-color:#e9ecef; }
-    .net-amount { background-color:#d4edda; padding:12px; border-radius:12px; font-weight:bold; text-align:center; margin-top:10px; font-size:1.2em; }
-    .deductions-row div { background-color:#ffe5e0; border-radius:8px; padding:10px; margin-bottom:5px; text-align:center; }
-    .btn-group-custom { display:flex; flex-wrap:wrap; gap:10px; margin-top:20px; }
-    input[type=number]::-webkit-inner-spin-button,
-    input[type=number]::-webkit-outer-spin-button { -webkit-appearance:none; margin:0; }
-    input[type=number] { -moz-appearance:textfield; }
-    .form-group-portrait { display:flex; flex-direction:column; gap:10px; }
-    footer { text-align:center; padding:20px 0; margin-top:40px; color:#6c757d; font-size:0.9em; }
-    .summary-card { background-color:#fff3cd; padding:15px; border-radius:12px; margin-top:20px; text-align:center; font-weight:bold; }
+    body {
+      background: linear-gradient(135deg, #e6f0ff, #f8fafc);
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      padding: 28px;
+    }
+
+    .card {
+      border-radius: 14px;
+      box-shadow: 0 8px 26px rgba(34, 40, 80, 0.06);
+    }
+
+    .control {
+      border-radius: 10px;
+    }
+
+    input[type="text"] {
+      -moz-appearance: textfield;
+    }
+
+    input::-webkit-outer-spin-button,
+    input::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    .rate-badge {
+      font-weight: 700;
+      color: #0b5ed7;
+    }
+
+    .net-box {
+      background: #e8f5e9;
+      border-radius: 10px;
+      padding: 10px;
+      font-weight: 700;
+      text-align: center;
+    }
+
+    .ded-box {
+      background: #fff3cd;
+      border-radius: 10px;
+      padding: 8px;
+      text-align: center;
+    }
+
+    .danger-small {
+      color: #d9534f;
+      font-weight: 600;
+    }
+
+    .muted-small {
+      color: #6c757d;
+      font-size: .9rem;
+    }
   </style>
 </head>
+
 <body>
   <div class="container">
-    <h1>IMKSAV Salary & Income Tracker</h1>
-    <div class="tagline">Your personal UK weekly salary and deductions tracker</div>
+    <h2 class="text-center mb-3 text-primary">IMKSAV Salary Tracker (UK)</h2>
+    <p class="text-center muted-small mb-4">Enter weekly hours & optional payments — deductions calculated per the
+      weekly logic (Personal allowance £241.70).</p>
 
-    <!-- Input Card -->
-    <div class="card p-4 bg-white">
-      <h4 class="mb-3">Enter Weekly Details</h4>
-      <div class="form-group-portrait">
-        <div>
-          <label>Week</label>
-          <input type="number" id="week" class="form-control" value="1">
-        </div>
-        <div>
-          <label>Basic Hours</label>
-          <input type="number" id="basicHours" class="form-control" value="37.5" step="0.1">
-        </div>
-        <div>
-          <label>OT 1.25 Hours</label>
-          <input type="number" id="ot125Hours" class="form-control" value="0" step="0.1">
-        </div>
-        <div>
-          <label>OT 1.50 Hours</label>
-          <input type="number" id="ot150Hours" class="form-control" value="0" step="0.1">
-        </div>
-        <div>
-          <label>Step Up (£ optional)</label>
-          <input type="number" id="stepUp" class="form-control optional-field" value="0" step="0.01">
-        </div>
-        <div>
-          <label>UKP Walk Up (£ optional)</label>
-          <input type="number" id="ukp" class="form-control optional-field" value="0" step="0.01">
-        </div>
-        <div>
-          <label>Holiday (£ optional)</label>
-          <input type="number" id="holiday" class="form-control optional-field" value="0" step="0.01">
-        </div>
+    <div class="row gx-3 gy-3 mb-3">
+      <div class="col-md-3">
+        <label class="form-label">Basic Rate (£/hr)</label>
+        <select id="defaultRate" class="form-select control">
+          <option value="12.21">£12.21</option>
+          <option value="12.75">£12.75</option>
+          <option value="13.72">£13.72</option>
+        </select>
       </div>
-      <div class="btn-group-custom">
-        <button class="btn btn-primary" onclick="addWeek()">Add Week</button>
-        <button class="btn btn-warning" onclick="clearWeeks()">Clear</button>
-        <button class="btn btn-success" onclick="saveWeeks()">Save</button>
-        <button class="btn btn-info" onclick="exportExcel()">Export Excel</button>
+
+      <div class="col-md-3">
+        <label class="form-label">Quick Add: default hours</label>
+        <input id="defaultHours" type="text" class="form-control control" value="37.5" />
+      </div>
+
+      <div class="col-md-6 d-flex align-items-end gap-2">
+        <button class="btn btn-primary" onclick="addWeekFromDefaults()">➕ Add Week (quick)</button>
+        <button class="btn btn-success" onclick="saveAll()">💾 Save</button>
+        <button class="btn btn-info" onclick="exportExcel()">📤 Export Excel</button>
+        <button class="btn btn-outline-secondary" onclick="clearAll()">🧹 Clear All</button>
       </div>
     </div>
 
-    <!-- Output Container -->
-    <div id="outputContainer"></div>
+    <!-- Weeks list -->
+    <div id="weeksList" class="row gy-4"></div>
 
-    <!-- Summary Card -->
-    <div id="summaryCard" class="summary-card"></div>
-
+    <footer class="text-center mt-4 muted-small">
+      &copy; 2025 IMKSAV — Personal UK Salary Tracker
+    </footer>
   </div>
 
-  <footer>
-    &copy; 2025 imksav | Personal UK salary tracker for your weekly income, deductions & net pay
-  </footer>
-
-  <!-- XLSX Library -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script>
-    const FIXED_RATES = { basic:12.21, ot125:15.2625, ot150:18.315 };
-    let weeksData = JSON.parse(localStorage.getItem('weeksData')) || [];
+    const PERSONAL_ALLOWANCE_WEEKLY = 241.7;
+    let weeksData = JSON.parse(localStorage.getItem('imksav_weeks')) || [];
 
-    function addWeek() {
-      const week = parseInt(document.getElementById('week').value);
-      const basicHours = parseFloat(document.getElementById('basicHours').value);
-      const ot125Hours = parseFloat(document.getElementById('ot125Hours').value);
-      const ot150Hours = parseFloat(document.getElementById('ot150Hours').value);
-      const stepUp = parseFloat(document.getElementById('stepUp').value);
-      const ukp = parseFloat(document.getElementById('ukp').value);
-      const holiday = parseFloat(document.getElementById('holiday').value);
-
-      const basicPay = basicHours*FIXED_RATES.basic;
-      const ot125Pay = ot125Hours*FIXED_RATES.ot125;
-      const ot150Pay = ot150Hours*FIXED_RATES.ot150;
-      const totalEarnings = basicPay + ot125Pay + ot150Pay + stepUp + ukp + holiday;
-      const personalAllowance = 241.7;
-      const taxableIncome = Math.max(totalEarnings - personalAllowance,0);
-      const tax = taxableIncome*0.2;
-      const eeNI = taxableIncome*0.08;
-      const erNI = taxableIncome*0.1;
-      const deductions = { Tax: tax, 'EE NI': eeNI };
-      const netAmount = totalEarnings - (tax + eeNI);
-
-      // Add current date and time
-      const currentDateTime = new Date().toLocaleString();
-
-      weeksData.push({
-        week,basicHours,basicPay,ot125Hours,ot125Pay,ot150Hours,ot150Pay,
-        stepUp,ukp,holiday,totalEarnings,personalAllowance,taxableIncome,
-        deductions,erNI,netAmount, dateTime: currentDateTime
-      });
-
-      renderOutput();
+    function num(val) {
+      if (val === null || val === undefined) return 0;
+      const n = parseFloat(String(val).replace(/[^0-9.\-]/g, ''));
+      return Number.isFinite(n) ? n : 0;
     }
 
-    function renderOutput() {
-      const container = document.getElementById('outputContainer');
+    function uid() { return 'id' + Date.now().toString(36) + Math.floor(Math.random() * 1000).toString(36); }
+
+    function render() {
+      const container = document.getElementById('weeksList');
       container.innerHTML = '';
-
-      let totalEarningsSum = 0, totalTax = 0, totalEENI = 0, totalERNI = 0, totalNet = 0;
-
-      weeksData.forEach(w => {
-        totalEarningsSum += w.totalEarnings;
-        totalTax += w.deductions.Tax;
-        totalEENI += w.deductions['EE NI'];
-        totalERNI += w.erNI;
-        totalNet += w.netAmount;
-
-        const card = document.createElement('div');
-        card.className = 'card p-3 output-card';
-        card.innerHTML = `
-          <h5>Week ${w.week} | Added: ${w.dateTime}</h5>
-          <div class="row">
-            <div class="col-md-4">Basic Pay: £${w.basicPay.toFixed(2)} (${w.basicHours} hrs)</div>
-            <div class="col-md-4">OT 1.25 Pay: £${w.ot125Pay.toFixed(2)} (${w.ot125Hours} hrs)</div>
-            <div class="col-md-4">OT 1.50 Pay: £${w.ot150Pay.toFixed(2)} (${w.ot150Hours} hrs)</div>
-          </div>
-          <div class="row mt-2">
-            <div class="col-md-3">Step Up: £${w.stepUp.toFixed(2)}</div>
-            <div class="col-md-3">UKP Walk Up: £${w.ukp.toFixed(2)}</div>
-            <div class="col-md-3">Holiday: £${w.holiday.toFixed(2)}</div>
-            <div class="col-md-3">Total Earnings: £${w.totalEarnings.toFixed(2)}</div>
-          </div>
-          <div class="row mt-3 deductions-row">
-            <div class="col-md-3">Tax: £${w.deductions.Tax.toFixed(2)}</div>
-            <div class="col-md-3">EE NI: £${w.deductions['EE NI'].toFixed(2)}</div>
-            <div class="col-md-3">ER NI: £${w.erNI.toFixed(2)}</div>
-            <div class="col-md-3">Total Deductions: £${(w.deductions.Tax+w.deductions['EE NI']).toFixed(2)}</div>
-          </div>
-          <div class="net-amount">Net Amount Paid: £${w.netAmount.toFixed(2)}</div>
-        `;
-        container.appendChild(card);
+      weeksData.forEach((w, idx) => {
+        const col = document.createElement('div');
+        col.className = 'col-md-6';
+        col.innerHTML = weekCardHTML(w, idx + 1);
+        container.appendChild(col);
+        attachCardListeners(w.id);
       });
-
-      document.getElementById('summaryCard').innerHTML = `
-        <div>Total Earnings: £${totalEarningsSum.toFixed(2)} | Total Tax: £${totalTax.toFixed(2)} | EE NI: £${totalEENI.toFixed(2)} | ER NI: £${totalERNI.toFixed(2)} | Net Amount: £${totalNet.toFixed(2)}</div>
-      `;
     }
 
-    function clearWeeks() {
-      weeksData = [];
-      localStorage.removeItem('weeksData');
-      renderOutput();
+    function weekCardHTML(w, displayIndex) {
+      const basicRate = (w.rate || num(document.getElementById('defaultRate').value)).toFixed(2);
+      const ot125Rate = ((w.rate || num(document.getElementById('defaultRate').value)) * 1.25).toFixed(2);
+      const ot150Rate = ((w.rate || num(document.getElementById('defaultRate').value)) * 1.5).toFixed(2);
+
+      const hours = num(w.hours);
+      const ot125 = num(w.ot125);
+      const ot150 = num(w.ot150);
+      const holiday = num(w.holiday);
+      const stepUp = num(w.stepUp);
+      const ukp = num(w.ukp);
+
+      const basicPay = hours * (w.rate || num(document.getElementById('defaultRate').value));
+      const ot125Pay = ot125 * (w.rate || num(document.getElementById('defaultRate').value)) * 1.25;
+      const ot150Pay = ot150 * (w.rate || num(document.getElementById('defaultRate').value)) * 1.5;
+      const totalEarnings = basicPay + ot125Pay + ot150Pay + holiday + stepUp + ukp;
+
+      const taxable = Math.max(totalEarnings - PERSONAL_ALLOWANCE_WEEKLY, 0);
+      const tax = taxable * 0.2;
+      const eeNI = taxable * 0.08;
+      const totalDeductions = tax + eeNI;
+      const net = totalEarnings - totalDeductions;
+
+      return `
+    <div class="card p-3" id="${w.id}-card">
+      <div class="d-flex justify-content-between align-items-top mb-2">
+        <div>
+          <h5 class="mb-0">Week ${displayIndex}</h5>
+          <div class="muted-small">Created: ${w.created || new Date().toLocaleString()}</div>
+        </div>
+        <div class="text-end">
+          <div class="rate-badge">Rate: £${basicRate}/hr</div>
+          <div class="muted-small">OT1.25: £${ot125Rate} | OT1.5: £${ot150Rate}</div>
+          <button class="btn btn-sm btn-outline-danger mt-2" onclick="deleteWeek('${w.id}')">Delete</button>
+        </div>
+      </div>
+
+      <div class="row g-2">
+        <div class="col-6">
+          <label class="form-label small">Hourly Rate (select)</label>
+          <select class="form-select input-rate control" data-id="${w.id}">
+            <option value="12.21" ${+w.rate === 12.21 ? 'selected' : ''}>£12.21</option>
+            <option value="12.75" ${+w.rate === 12.75 ? 'selected' : ''}>£12.75</option>
+            <option value="13.72" ${+w.rate === 13.72 ? 'selected' : ''}>£13.72</option>
+          </select>
+        </div>
+
+        <div class="col-6">
+          <label class="form-label small">Basic Hours</label>
+          <input type="text" class="form-control input-hours control" data-id="${w.id}" value="${w.hours ?? ''}" placeholder="e.g. 37.5">
+          <div class="muted-small">Pay: £<span id="${w.id}-basicPay">${basicPay.toFixed(2)}</span></div>
+        </div>
+
+        <div class="col-6">
+          <label class="form-label small">OT 1.25 Hours</label>
+          <input type="text" class="form-control input-ot125 control" data-id="${w.id}" value="${w.ot125 ?? ''}" placeholder="0">
+          <div class="muted-small">Pay: £<span id="${w.id}-ot125Pay">${ot125Pay.toFixed(2)}</span></div>
+        </div>
+
+        <div class="col-6">
+          <label class="form-label small">OT 1.50 Hours</label>
+          <input type="text" class="form-control input-ot150 control" data-id="${w.id}" value="${w.ot150 ?? ''}" placeholder="0">
+          <div class="muted-small">Pay: £<span id="${w.id}-ot150Pay">${ot150Pay.toFixed(2)}</span></div>
+        </div>
+
+        <div class="col-4">
+          <label class="form-label small">Holiday (£) (optional)</label>
+          <input type="text" class="form-control input-holiday control" data-id="${w.id}" value="${w.holiday ?? ''}" placeholder="0">
+        </div>
+
+        <div class="col-4">
+          <label class="form-label small">Step Up (£) (optional)</label>
+          <input type="text" class="form-control input-stepUp control" data-id="${w.id}" value="${w.stepUp ?? ''}" placeholder="0">
+        </div>
+
+        <div class="col-4">
+          <label class="form-label small">UKP (£) (optional)</label>
+          <input type="text" class="form-control input-ukp control" data-id="${w.id}" value="${w.ukp ?? ''}" placeholder="0">
+        </div>
+
+        <div class="col-6 mt-2">
+          <div class="net-box">Gross: £<span id="${w.id}-gross">${totalEarnings.toFixed(2)}</span></div>
+        </div>
+        <div class="col-6 mt-2">
+          <div class="ded-box">Deductions: £<span id="${w.id}-deductions">${totalDeductions.toFixed(2)}</span></div>
+        </div>
+
+        <div class="col-12 mt-2">
+          <h5 class="text-primary">Net Pay: £<span id="${w.id}-net">${net.toFixed(2)}</span></h5>
+          <div class="muted-small">Tax: £<span id="${w.id}-tax">${tax.toFixed(2)}</span> | EE NI: £<span id="${w.id}-eeNI">${eeNI.toFixed(2)}</span></div>
+        </div>
+      </div>
+    </div>
+  `;
     }
 
-    function saveWeeks() {
-      localStorage.setItem('weeksData', JSON.stringify(weeksData));
-      alert('Data saved locally!');
+    function attachCardListeners(id) {
+      const card = document.getElementById(id + '-card');
+      if (!card) return;
+
+      const sel = card.querySelector('.input-rate');
+      const hours = card.querySelector('.input-hours');
+      const ot125 = card.querySelector('.input-ot125');
+      const ot150 = card.querySelector('.input-ot150');
+      const holiday = card.querySelector('.input-holiday');
+      const stepUp = card.querySelector('.input-stepUp');
+      const ukp = card.querySelector('.input-ukp');
+
+      const inputs = [sel, hours, ot125, ot150, holiday, stepUp, ukp];
+      inputs.forEach(inp => {
+        if (!inp) return;
+        inp.addEventListener('input', () => {
+          const obj = weeksData.find(x => x.id === id);
+          if (!obj) return;
+          obj.rate = num(card.querySelector('.input-rate').value);
+          obj.hours = card.querySelector('.input-hours').value;
+          obj.ot125 = card.querySelector('.input-ot125').value;
+          obj.ot150 = card.querySelector('.input-ot150').value;
+          obj.holiday = card.querySelector('.input-holiday').value;
+          obj.stepUp = card.querySelector('.input-stepUp').value;
+          obj.ukp = card.querySelector('.input-ukp').value;
+          computeAndDisplay(obj);
+        });
+      });
+    }
+
+    function computeAndDisplay(entry) {
+      const rate = num(entry.rate);
+      const hours = num(entry.hours);
+      const ot125 = num(entry.ot125);
+      const ot150 = num(entry.ot150);
+      const holiday = num(entry.holiday);
+      const stepUp = num(entry.stepUp);
+      const ukp = num(entry.ukp);
+
+      const basicPay = hours * rate;
+      const ot125Pay = ot125 * rate * 1.25;
+      const ot150Pay = ot150 * rate * 1.5;
+      const totalEarnings = basicPay + ot125Pay + ot150Pay + holiday + stepUp + ukp;
+
+      const taxable = Math.max(totalEarnings - PERSONAL_ALLOWANCE_WEEKLY, 0);
+      const tax = taxable * 0.2;
+      const eeNI = taxable * 0.08;
+      const totalDeductions = tax + eeNI;
+      const netPay = totalEarnings - totalDeductions;
+
+      entry.basicPay = basicPay;
+      entry.ot125Pay = ot125Pay;
+      entry.ot150Pay = ot150Pay;
+      entry.totalEarnings = totalEarnings;
+      entry.taxable = taxable;
+      entry.tax = tax;
+      entry.eeNI = eeNI;
+      entry.totalDeductions = totalDeductions;
+      entry.netPay = netPay;
+
+      const id = entry.id;
+      const el = document.getElementById(id + '-card');
+      if (!el) return;
+      el.querySelector(`#${id}-basicPay`).innerText = basicPay.toFixed(2);
+      el.querySelector(`#${id}-ot125Pay`).innerText = ot125Pay.toFixed(2);
+      el.querySelector(`#${id}-ot150Pay`).innerText = ot150Pay.toFixed(2);
+      el.querySelector(`#${id}-gross`).innerText = totalEarnings.toFixed(2);
+      el.querySelector(`#${id}-deductions`).innerText = totalDeductions.toFixed(2);
+      el.querySelector(`#${id}-net`).innerText = netPay.toFixed(2);
+      el.querySelector(`#${id}-tax`).innerText = tax.toFixed(2);
+      el.querySelector(`#${id}-eeNI`).innerText = eeNI.toFixed(2);
+    }
+
+    function addWeek(data = {}) {
+      const entry = {
+        id: uid(),
+        rate: num(data.rate) || num(document.getElementById('defaultRate').value),
+        hours: data.hours ?? (data.hours === 0 ? 0 : ''),
+        ot125: data.ot125 ?? (data.ot125 === 0 ? 0 : ''),
+        ot150: data.ot150 ?? (data.ot150 === 0 ? 0 : ''),
+        holiday: data.holiday ?? '',
+        stepUp: data.stepUp ?? '',
+        ukp: data.ukp ?? '',
+        created: data.created || new Date().toLocaleString()
+      };
+      weeksData.push(entry);
+      render();
+      computeAndDisplay(entry);
+    }
+
+    function addWeekFromDefaults() {
+      const rate = num(document.getElementById('defaultRate').value);
+      const hours = num(document.getElementById('defaultHours').value);
+      addWeek({ rate, hours });
+    }
+
+    function deleteWeek(id) {
+      weeksData = weeksData.filter(w => w.id !== id);
+      render();
+    }
+
+    function saveAll() {
+      weeksData.forEach(w => computeAndDisplay(w));
+      localStorage.setItem('imksav_weeks', JSON.stringify(weeksData));
+      alert('Saved locally ✅');
     }
 
     function exportExcel() {
-      const ws_data = [['Week','Date & Time','Basic Hours','Basic Pay','OT 1.25 Hours','OT 1.25 Pay','OT 1.50 Hours','OT 1.50 Pay','Step Up','UKP Walk Up','Holiday','Total Earnings','Personal Allowance','Taxable Income','Tax','EE NI','ER NI','Total Deductions','Net Amount Paid']];
-      weeksData.forEach(w=>{
-        ws_data.push([
-          w.week, w.dateTime, w.basicHours, w.basicPay, w.ot125Hours, w.ot125Pay, w.ot150Hours, w.ot150Pay,
-          w.stepUp, w.ukp, w.holiday, w.totalEarnings, w.personalAllowance, w.taxableIncome,
-          w.deductions.Tax, w.deductions['EE NI'], w.erNI, (w.deductions.Tax+w.deductions['EE NI']), w.netAmount
-        ]);
-      });
+      weeksData.forEach(w => computeAndDisplay(w));
+      const sheetData = weeksData.map((w, idx) => ({
+        Week: idx + 1,
+        Created: w.created,
+        'Rate(£/hr)': Number(w.rate).toFixed(2),
+        'Basic Hours': num(w.hours),
+        'Basic Pay(£)': Number(w.basicPay || 0).toFixed(2),
+        'OT1.25 Hours': num(w.ot125),
+        'OT1.25 Pay(£)': Number(w.ot125Pay || 0).toFixed(2),
+        'OT1.5 Hours': num(w.ot150),
+        'OT1.5 Pay(£)': Number(w.ot150Pay || 0).toFixed(2),
+        'Holiday(£)': num(w.holiday),
+        'StepUp(£)': num(w.stepUp),
+        'UKP(£)': num(w.ukp),
+        'Total Earnings(£)': Number(w.totalEarnings || 0).toFixed(2),
+        'Personal Allowance(£)': PERSONAL_ALLOWANCE_WEEKLY,
+        'Taxable(£)': Number(w.taxable || 0).toFixed(2),
+        'Tax(£)': Number(w.tax || 0).toFixed(2),
+        'EE NI(£)': Number(w.eeNI || 0).toFixed(2),
+        'Total Deductions(£)': Number(w.totalDeductions || 0).toFixed(2),
+        'Net Pay(£)': Number(w.netPay || 0).toFixed(2)
+      }));
+
+      const ws = XLSX.utils.json_to_sheet(sheetData);
       const wb = XLSX.utils.book_new();
-      const ws = XLSX.utils.aoa_to_sheet(ws_data);
       XLSX.utils.book_append_sheet(wb, ws, 'Salary');
-      XLSX.writeFile(wb,'salary_data.xlsx');
+      XLSX.writeFile(wb, 'imksav_salary_report.xlsx');
     }
 
-    renderOutput();
+    function clearAll() {
+      if (!confirm('Clear all saved weeks?')) return;
+      weeksData = [];
+      localStorage.removeItem('imksav_weeks');
+      render();
+    }
+
+    (function init() {
+      const saved = JSON.parse(localStorage.getItem('imksav_weeks')) || [];
+      if (Array.isArray(saved) && saved.length) {
+        saved.forEach(s => { s.id = s.id || uid(); });
+        weeksData = saved;
+      } else {
+        addWeek({ rate: num(document.getElementById ? document.getElementById('defaultRate').value : 12.21), hours: 37.5, created: new Date().toLocaleString() });
+      }
+      render();
+    })();
   </script>
 </body>
+
 </html>
